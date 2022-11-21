@@ -111,6 +111,8 @@ S* addressIfSame(T&, char) {
   return nullptr;}
 template <typename S>
 S* addressIfSame(S& t, int) {return &t;}
+template <typename S>
+S const* addressIfSame(S const& t, int) {return &t;}
 
 // clang-format on
 } // namespace
@@ -167,7 +169,7 @@ public:
    *
    * @param outStream Stream to write to.
    */
-  virtual void writeHeader(std::ostream& outStream) = 0;
+  virtual void writeHeader(std::ostream& outStream) const = 0;
 
   /**
    * @brief (ASCII writing) write this property for some element to a stream in plaintext
@@ -175,7 +177,7 @@ public:
    * @param outStream Stream to write to.
    * @param iElement index of the element to write.
    */
-  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) = 0;
+  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) const = 0;
 
   /**
    * @brief (binary writing) copy the bits of this property for some element to a stream
@@ -183,7 +185,7 @@ public:
    * @param outStream Stream to write to.
    * @param iElement index of the element to write.
    */
-  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) = 0;
+  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) const = 0;
 
   /**
    * @brief (binary writing) copy the bits of this property for some element to a stream
@@ -191,21 +193,21 @@ public:
    * @param outStream Stream to write to.
    * @param iElement index of the element to write.
    */
-  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) = 0;
+  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) const = 0;
 
   /**
    * @brief Number of element entries for this property
    *
    * @return
    */
-  virtual size_t size() = 0;
+  virtual size_t size() const = 0;
 
   /**
    * @brief A string naming the type of the property
    *
    * @return
    */
-  virtual std::string propertyTypeName() = 0;
+  virtual std::string propertyTypeName() const = 0;
 };
 
 namespace {
@@ -350,7 +352,7 @@ public:
    *
    * @param outStream Stream to write to.
    */
-  virtual void writeHeader(std::ostream& outStream) override {
+  virtual void writeHeader(std::ostream& outStream) const override {
     outStream << "property " << typeName<T>() << " " << name << "\n";
   }
 
@@ -360,7 +362,7 @@ public:
    * @param outStream Stream to write to.
    * @param iElement index of the element to write.
    */
-  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) override {
+  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) const override {
     outStream.precision(std::numeric_limits<T>::max_digits10);
     outStream << static_cast<typename SerializeType<T>::type>(data[iElement]); // case is usually a no-op
   }
@@ -371,7 +373,7 @@ public:
    * @param outStream Stream to write to.
    * @param iElement index of the element to write.
    */
-  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) override {
+  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) const override {
     outStream.write((char*)&data[iElement], sizeof(T));
   }
 
@@ -381,7 +383,7 @@ public:
    * @param outStream Stream to write to.
    * @param iElement index of the element to write.
    */
-  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) override {
+  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) const override {
     auto value = swapEndian(data[iElement]);
     outStream.write((char*)&value, sizeof(T));
   }
@@ -391,7 +393,7 @@ public:
    *
    * @return
    */
-  virtual size_t size() override { return data.size(); }
+  virtual size_t size() const override { return data.size(); }
 
 
   /**
@@ -399,7 +401,7 @@ public:
    *
    * @return
    */
-  virtual std::string propertyTypeName() override { return typeName<T>(); }
+  virtual std::string propertyTypeName() const override { return typeName<T>(); }
 
   /**
    * @brief The actual data contained in the property
@@ -546,7 +548,7 @@ public:
    *
    * @param outStream Stream to write to.
    */
-  virtual void writeHeader(std::ostream& outStream) override {
+  virtual void writeHeader(std::ostream& outStream) const override {
     // NOTE: We ALWAYS use uchar as the list count output type
     outStream << "property list uchar " << typeName<T>() << " " << name << "\n";
   }
@@ -557,7 +559,7 @@ public:
    * @param outStream Stream to write to.
    * @param iElement index of the element to write.
    */
-  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) override {
+  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) const override {
     size_t dataStart = flattenedIndexStart[iElement];
     size_t dataEnd = flattenedIndexStart[iElement + 1];
 
@@ -581,7 +583,7 @@ public:
    * @param outStream Stream to write to.
    * @param iElement index of the element to write.
    */
-  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) override {
+  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) const override {
     size_t dataStart = flattenedIndexStart[iElement];
     size_t dataEnd = flattenedIndexStart[iElement + 1];
 
@@ -603,7 +605,7 @@ public:
    * @param outStream Stream to write to.
    * @param iElement index of the element to write.
    */
-  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) override {
+  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) const override {
     size_t dataStart = flattenedIndexStart[iElement];
     size_t dataEnd = flattenedIndexStart[iElement + 1];
 
@@ -627,7 +629,7 @@ public:
    *
    * @return
    */
-  virtual size_t size() override { return flattenedIndexStart.size() - 1; }
+  virtual size_t size() const override { return flattenedIndexStart.size() - 1; }
 
 
   /**
@@ -635,7 +637,7 @@ public:
    *
    * @return
    */
-  virtual std::string propertyTypeName() override { return typeName<T>(); }
+  virtual std::string propertyTypeName() const override { return typeName<T>(); }
 
   /**
    * @brief The (flattened) data for the property, as formed by concatenating all of the individual element lists
@@ -797,8 +799,8 @@ public:
    *
    * @return Whether the target property exists.
    */
-  bool hasProperty(const std::string& target) {
-    for (std::unique_ptr<Property>& prop : properties) {
+  bool hasProperty(const std::string& target) const {
+    for (std::unique_ptr<Property> const& prop : properties) {
       if (prop->name == target) {
         return true;
       }
@@ -815,10 +817,10 @@ public:
    * @return Whether the target property exists.
    */
   template <class T>
-  bool hasPropertyType(const std::string& target) {
-    for (std::unique_ptr<Property>& prop : properties) {
+  bool hasPropertyType(const std::string& target) const {
+    for (std::unique_ptr<Property> const& prop : properties) {
       if (prop->name == target) {
-        TypedProperty<T>* castedProp = dynamic_cast<TypedProperty<T>*>(prop.get());
+        TypedProperty<T> const* castedProp = dynamic_cast<TypedProperty<T> const*>(prop.get());
         if (castedProp) {
           return true;
         }
@@ -833,9 +835,9 @@ public:
    *
    * @return Property names
    */
-  std::vector<std::string> getPropertyNames() {
+  std::vector<std::string> getPropertyNames() const {
     std::vector<std::string> names;
-    for (std::unique_ptr<Property>& p : properties) {
+    for (std::unique_ptr<Property> const& p : properties) {
       names.push_back(p->name);
     }
     return names;
@@ -848,13 +850,16 @@ public:
    *
    * @return A (unique_ptr) pointer to the property.
    */
-  std::unique_ptr<Property>& getPropertyPtr(const std::string& target) {
-    for (std::unique_ptr<Property>& prop : properties) {
+  std::unique_ptr<Property> const& getPropertyPtr(const std::string& target) const {
+    for (std::unique_ptr<Property> const& prop : properties) {
       if (prop->name == target) {
         return prop;
       }
     }
     throw std::runtime_error("PLY parser: element " + name + " does not have property " + target);
+  }
+  std::unique_ptr<Property>& getPropertyPtr(const std::string& target) {
+    return const_cast<std::unique_ptr<Property>&>(static_cast<Element const&>(*this).getPropertyPtr(target));
   }
 
   /**
@@ -928,10 +933,10 @@ public:
    * @return The data.
    */
   template <class T>
-  std::vector<T> getProperty(const std::string& propertyName) {
+  std::vector<T> getProperty(const std::string& propertyName) const {
 
     // Find the property
-    std::unique_ptr<Property>& prop = getPropertyPtr(propertyName);
+    std::unique_ptr<Property> const& prop = getPropertyPtr(propertyName);
 
     // Get a copy of the data with auto-promoting type magic
     return getDataFromPropertyRecursive<T, T>(prop.get());
@@ -947,11 +952,11 @@ public:
    * @return The data.
    */
   template <class T>
-  std::vector<T> getPropertyType(const std::string& propertyName) {
+  std::vector<T> getPropertyType(const std::string& propertyName) const {
 
     // Find the property
-    std::unique_ptr<Property>& prop = getPropertyPtr(propertyName);
-    TypedProperty<T>* castedProp = dynamic_cast<TypedProperty<T>*>(prop);
+    std::unique_ptr<Property> const& prop = getPropertyPtr(propertyName);
+    TypedProperty<T> const* castedProp = dynamic_cast<TypedProperty<T> const*>(prop);
     if (castedProp) {
       return castedProp->data;
     }
@@ -971,10 +976,10 @@ public:
    * @return The data.
    */
   template <class T>
-  std::vector<std::vector<T>> getListProperty(const std::string& propertyName) {
+  std::vector<std::vector<T>> getListProperty(const std::string& propertyName) const {
 
     // Find the property
-    std::unique_ptr<Property>& prop = getPropertyPtr(propertyName);
+    std::unique_ptr<Property> const& prop = getPropertyPtr(propertyName);
 
     // Get a copy of the data with auto-promoting type magic
     return getDataFromListPropertyRecursive<T, T>(prop.get());
@@ -990,11 +995,11 @@ public:
    * @return The data.
    */
   template <class T>
-  std::vector<std::vector<T>> getListPropertyType(const std::string& propertyName) {
+  std::vector<std::vector<T>> getListPropertyType(const std::string& propertyName) const {
 
     // Find the property
-    std::unique_ptr<Property>& prop = getPropertyPtr(propertyName);
-    TypedListProperty<T>* castedProp = dynamic_cast<TypedListProperty<T>*>(prop);
+    std::unique_ptr<Property> const& prop = getPropertyPtr(propertyName);
+    TypedListProperty<T> const* castedProp = dynamic_cast<TypedListProperty<T> const*>(prop);
     if (castedProp) {
       return unflattenList(castedProp->flattenedData, castedProp->flattenedIndexStart);
     }
@@ -1017,10 +1022,10 @@ public:
    * @return The data.
    */
   template <class T>
-  std::vector<std::vector<T>> getListPropertyAnySign(const std::string& propertyName) {
+  std::vector<std::vector<T>> getListPropertyAnySign(const std::string& propertyName) const {
 
     // Find the property
-    std::unique_ptr<Property>& prop = getPropertyPtr(propertyName);
+    std::unique_ptr<Property> const& prop = getPropertyPtr(propertyName);
 
     // Get a copy of the data with auto-promoting type magic
     try {
@@ -1051,7 +1056,7 @@ public:
   /**
    * @brief Performs sanity checks on the element, throwing if any fail.
    */
-  void validate() {
+  void validate() const {
 
     // Make sure no properties have duplicate names, and no names have whitespace
     for (size_t iP = 0; iP < properties.size(); iP++) {
@@ -1081,11 +1086,11 @@ public:
    *
    * @param outStream The stream to use.
    */
-  void writeHeader(std::ostream& outStream) {
+  void writeHeader(std::ostream& outStream) const {
 
     outStream << "element " << name << " " << count << "\n";
 
-    for (std::unique_ptr<Property>& p : properties) {
+    for (std::unique_ptr<Property> const& p : properties) {
       p->writeHeader(outStream);
     }
   }
@@ -1096,7 +1101,7 @@ public:
    *
    * @param outStream The stream to write to.
    */
-  void writeDataASCII(std::ostream& outStream) {
+  void writeDataASCII(std::ostream& outStream) const {
     // Question: what is the proper output for an element with no properties? Here, we write a blank line, so there is
     // one line per element no matter what.
     for (size_t iE = 0; iE < count; iE++) {
@@ -1117,7 +1122,7 @@ public:
    *
    * @param outStream The stream to write to.
    */
-  void writeDataBinary(std::ostream& outStream) {
+  void writeDataBinary(std::ostream& outStream) const {
     for (size_t iE = 0; iE < count; iE++) {
       for (size_t iP = 0; iP < properties.size(); iP++) {
         properties[iP]->writeDataBinary(outStream, iE);
@@ -1132,7 +1137,7 @@ public:
    *
    * @param outStream The stream to write to.
    */
-  void writeDataBinaryBigEndian(std::ostream& outStream) {
+  void writeDataBinaryBigEndian(std::ostream& outStream) const {
     for (size_t iE = 0; iE < count; iE++) {
       for (size_t iP = 0; iP < properties.size(); iP++) {
         properties[iP]->writeDataBinaryBigEndian(outStream, iE);
@@ -1152,17 +1157,17 @@ public:
    * @return The data, with the requested type
    */
   template <class D, class T>
-  std::vector<D> getDataFromPropertyRecursive(Property* prop) {
+  std::vector<D> getDataFromPropertyRecursive(Property const* prop) const {
 
     typedef typename CanonicalName<T>::type Tcan;
 
     { // Try to return data of type D from a property of type T
-      TypedProperty<Tcan>* castedProp = dynamic_cast<TypedProperty<Tcan>*>(prop);
+      TypedProperty<Tcan> const* castedProp = dynamic_cast<TypedProperty<Tcan> const*>(prop);
       if (castedProp) {
         // Succeeded, return a buffer of the data (copy while converting type)
         std::vector<D> castedVec;
         castedVec.reserve(castedProp->data.size());
-        for (Tcan& v : castedProp->data) {
+        for (Tcan const& v : castedProp->data) {
           castedVec.push_back(static_cast<D>(v));
         }
         return castedVec;
@@ -1191,15 +1196,15 @@ public:
    * @return The data, with the requested type
    */
   template <class D, class T>
-  std::vector<std::vector<D>> getDataFromListPropertyRecursive(Property* prop) {
+  std::vector<std::vector<D>> getDataFromListPropertyRecursive(Property const* prop) const {
     typedef typename CanonicalName<T>::type Tcan;
 
-    TypedListProperty<Tcan>* castedProp = dynamic_cast<TypedListProperty<Tcan>*>(prop);
+    TypedListProperty<Tcan> const* castedProp = dynamic_cast<TypedListProperty<Tcan> const*>(prop);
     if (castedProp) {
       // Succeeded, return a buffer of the data (copy while converting type)
 
       // Convert to flat buffer of new type
-      std::vector<D>* castedFlatVec = nullptr;
+      std::vector<D> const* castedFlatVec = nullptr;
       std::vector<D> castedFlatVecCopy; // we _might_ make a copy here, depending on is_same below
 
       if (std::is_same<std::vector<D>, std::vector<Tcan>>::value) {
@@ -1208,7 +1213,7 @@ public:
       } else {
         // make a copy
         castedFlatVecCopy.reserve(castedProp->flattenedData.size());
-        for (Tcan& v : castedProp->flattenedData) {
+        for (Tcan const& v : castedProp->flattenedData) {
           castedFlatVecCopy.push_back(static_cast<D>(v));
         }
         castedFlatVec = &castedFlatVecCopy;
@@ -1331,7 +1336,7 @@ public:
   /**
    * @brief Perform sanity checks on the file, throwing if any fail.
    */
-  void validate() {
+  void validate() const {
 
     for (size_t iE = 0; iE < elements.size(); iE++) {
       for (char c : elements[iE].name) {
@@ -1347,7 +1352,7 @@ public:
     }
 
     // Do a quick validation sanity check
-    for (Element& e : elements) {
+    for (Element const& e : elements) {
       e.validate();
     }
   }
@@ -1393,11 +1398,14 @@ public:
    *
    * @return A reference to the element type.
    */
-  Element& getElement(const std::string& target) {
-    for (Element& e : elements) {
+  Element const& getElement(const std::string& target) const {
+    for (Element const& e : elements) {
       if (e.name == target) return e;
     }
     throw std::runtime_error("PLY parser: no element with name: " + target);
+  }
+  Element& getElement(const std::string& target) {
+    return const_cast<Element&>(static_cast<PLYData const&>(*this).getElement(target));
   }
 
 
@@ -1408,8 +1416,8 @@ public:
    *
    * @return True if exists.
    */
-  bool hasElement(const std::string& target) {
-    for (Element& e : elements) {
+  bool hasElement(const std::string& target) const {
+    for (Element const& e : elements) {
       if (e.name == target) return true;
     }
     return false;
@@ -1421,9 +1429,9 @@ public:
    *
    * @return Element names
    */
-  std::vector<std::string> getElementNames() {
+  std::vector<std::string> getElementNames() const {
     std::vector<std::string> names;
-    for (Element& e : elements) {
+    for (Element const& e : elements) {
       names.push_back(e.name);
     }
     return names;
@@ -1448,7 +1456,7 @@ public:
    *
    * @return A vector of vertex positions.
    */
-  std::vector<std::array<double, 3>> getVertexPositions(const std::string& vertexElementName = "vertex") {
+  std::vector<std::array<double, 3>> getVertexPositions(const std::string& vertexElementName = "vertex") const {
 
     std::vector<double> xPos = getElement(vertexElementName).getProperty<double>("x");
     std::vector<double> yPos = getElement(vertexElementName).getProperty<double>("y");
@@ -1471,7 +1479,7 @@ public:
    *
    * @return A vector of vertex colors (unsigned chars [0,255]).
    */
-  std::vector<std::array<unsigned char, 3>> getVertexColors(const std::string& vertexElementName = "vertex") {
+  std::vector<std::array<unsigned char, 3>> getVertexColors(const std::string& vertexElementName = "vertex") const {
 
     std::vector<unsigned char> r = getElement(vertexElementName).getProperty<unsigned char>("red");
     std::vector<unsigned char> g = getElement(vertexElementName).getProperty<unsigned char>("green");
@@ -1495,7 +1503,7 @@ public:
    * @return The indices into the vertex elements for each face. Usually 0-based, though there are no formal rules.
    */
   template <typename T = size_t>
-  std::vector<std::vector<T>> getFaceIndices() {
+  std::vector<std::vector<T>> getFaceIndices() const {
 
     for (const std::string& f : std::vector<std::string>{"face"}) {
       for (const std::string& p : std::vector<std::string>{"vertex_indices", "vertex_index"}) {
@@ -1942,12 +1950,12 @@ private:
    *
    * @param outStream
    */
-  void writePLY(std::ostream& outStream) {
+  void writePLY(std::ostream& outStream) const {
 
     writeHeader(outStream);
 
     // Write all elements
-    for (Element& e : elements) {
+    for (Element const& e : elements) {
       if (outputDataFormat == DataFormat::Binary) {
         if (!isLittleEndian()) {
           throw std::runtime_error("binary writing assumes little endian system");
@@ -1970,7 +1978,7 @@ private:
    *
    * @param outStream
    */
-  void writeHeader(std::ostream& outStream) {
+  void writeHeader(std::ostream& outStream) const {
 
     // Magic line
     outStream << "ply\n";
@@ -2005,7 +2013,7 @@ private:
     }
 
     // Write elements (and their properties)
-    for (Element& e : elements) {
+    for (Element const& e : elements) {
       e.writeHeader(outStream);
     }
 
