@@ -49,11 +49,13 @@ SOFTWARE.
 // clang-format on
 
 #include <array>
+#include <cassert>
 #include <cctype>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -245,7 +247,7 @@ template <> int8_t swapEndian<int8_t>(int8_t val) { return val; }
 template <> uint8_t swapEndian<uint8_t>(uint8_t val) { return val; }
 
 
-// Unpack flattened list from the convention used in TypedListProperty
+// Unpack flattened list from the convention used in TypedListPropertyRw
 template <typename T>
 std::vector<std::vector<T>> unflattenList(const std::vector<T>& flatList, const std::vector<size_t> flatListStarts) {
   size_t outerCount = flatListStarts.size() - 1;
@@ -283,7 +285,143 @@ public:
    *
    * @param name_
    */
-  TypedProperty(const std::string& name_) : Property(name_) {
+  //TypedProperty(const std::string& name_) : Property(name_) {
+  //  assert(false);
+  //  if (typeName<typename CanonicalName<T>::type>() == "unknown") {
+  //    // TODO should really be a compile-time error
+  //    throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
+  //  }
+  //};
+
+  /**
+   * @brief Create a new property and initialize with data.
+   *
+   * @param name_
+   * @param data_
+   */
+  TypedProperty(const std::string& name_, const std::vector<T>& data_) : Property(name_), data(data_) {
+    if (typeName<typename CanonicalName<T>::type>() == "unknown") {
+      throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
+    }
+  };
+
+  virtual ~TypedProperty() override{};
+
+  /**
+   * @brief Reserve memory.
+   *
+   * @param capacity Expected number of elements.
+   */
+  virtual void reserve(size_t capacity) override {
+      assert(false);
+  }
+
+  /**
+   * @brief (ASCII reading) Parse out the next value of this property from a list of tokens.
+   *
+   * @param tokens The list of property tokens for the element.
+   * @param currEntry Index in to tokens, updated after this property is read.
+   */
+  virtual void parseNext(const std::vector<std::string>& tokens, size_t& currEntry) override {
+      assert(false);
+  };
+
+  /**
+   * @brief (binary reading) Copy the next value of this property from a stream of bits.
+   *
+   * @param stream Stream to read from.
+   */
+  virtual void readNext(std::istream& stream) override {
+      assert(false);
+  }
+
+  /**
+   * @brief (binary reading) Copy the next value of this property from a stream of bits.
+   *
+   * @param stream Stream to read from.
+   */
+  virtual void readNextBigEndian(std::istream& stream) override {
+      assert(false);
+  }
+
+  /**
+   * @brief (reading) Write a header entry for this property.
+   *
+   * @param outStream Stream to write to.
+   */
+  virtual void writeHeader(std::ostream& outStream) const override {
+    outStream << "property " << typeName<typename CanonicalName<T>::type>() << " " << name << "\n";
+  }
+
+  /**
+   * @brief (ASCII writing) write this property for some element to a stream in plaintext
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) const override {
+    outStream.precision(std::numeric_limits<typename CanonicalName<T>::type>::max_digits10);
+    outStream << static_cast<typename SerializeType<typename CanonicalName<T>::type>::type>(
+        data[iElement]); // case is usually a no-op
+  }
+
+  /**
+   * @brief (binary writing) copy the bits of this property for some element to a stream
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) const override {
+    if (sizeof(T) == sizeof(typename CanonicalName<T>::type))
+      outStream.write((char*)&data[iElement], sizeof(typename CanonicalName<T>::type));
+    else {
+      typename CanonicalName<T>::type const tmp = data[iElement];
+      outStream.write((char*)&tmp, sizeof(typename CanonicalName<T>::type));
+    }
+  }
+
+  /**
+   * @brief (binary writing) copy the bits of this property for some element to a stream
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) const override {
+    auto value = swapEndian(static_cast<typename CanonicalName<T>::type>(data[iElement]));
+    outStream.write((char*)&value, sizeof(typename CanonicalName<T>::type));
+  }
+
+  /**
+   * @brief Number of element entries for this property
+   *
+   * @return
+   */
+  virtual size_t size() const override { return data.size(); }
+
+
+  /**
+   * @brief A string naming the type of the property
+   *
+   * @return
+   */
+  virtual std::string propertyTypeName() const override { return typeName<typename CanonicalName<T>::type>(); }
+
+  /**
+   * @brief The actual data contained in the property
+   */
+  std::vector<T> const& data;
+};
+
+template <class T>
+class TypedPropertyRw : public Property {
+
+public:
+  /**
+   * @brief Create a new Property with the given name.
+   *
+   * @param name_
+   */
+  TypedPropertyRw(const std::string& name_) : Property(name_) {
     if (typeName<T>() == "unknown") {
       // TODO should really be a compile-time error
       throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
@@ -296,13 +434,13 @@ public:
    * @param name_
    * @param data_
    */
-  TypedProperty(const std::string& name_, const std::vector<T>& data_) : Property(name_), data(data_) {
+  TypedPropertyRw(const std::string& name_, const std::vector<T>& data_) : Property(name_), data(data_) {
     if (typeName<T>() == "unknown") {
       throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
     }
   };
 
-  virtual ~TypedProperty() override{};
+  virtual ~TypedPropertyRw() override{};
 
   /**
    * @brief Reserve memory.
@@ -423,6 +561,172 @@ public:
    * @param name_
    */
   TypedListProperty(const std::string& name_, int listCountBytes_) : Property(name_), listCountBytes(listCountBytes_) {
+    assert(false);
+    if (typeName<typename CanonicalName<T>::type>() == "unknown") {
+      throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
+    }
+
+    flattenedIndexStart.push_back(0);
+  };
+
+  /**
+   * @brief Create a new property and initialize with data
+   *
+   * @param name_
+   * @param data_
+   */
+  TypedListProperty(const std::string& name_, const std::vector<std::vector<T>>& data_) : Property(name_), data(data_) {
+    if (typeName<typename CanonicalName<T>::type>() == "unknown") {
+      throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
+    }
+  };
+
+  virtual ~TypedListProperty() override{};
+
+  /**
+   * @brief Reserve memory.
+   *
+   * @param capacity Expected number of elements.
+   */
+  virtual void reserve(size_t capacity) override {
+    assert(false);
+  }
+
+  /**
+   * @brief (ASCII reading) Parse out the next value of this property from a list of tokens.
+   *
+   * @param tokens The list of property tokens for the element.
+   * @param currEntry Index in to tokens, updated after this property is read.
+   */
+  virtual void parseNext(const std::vector<std::string>& tokens, size_t& currEntry) override {
+    assert(false);
+  }
+
+  /**
+   * @brief (binary reading) Copy the next value of this property from a stream of bits.
+   *
+   * @param stream Stream to read from.
+   */
+  virtual void readNext(std::istream& stream) override {
+    assert(false);
+  }
+
+  /**
+   * @brief (binary reading) Copy the next value of this property from a stream of bits.
+   *
+   * @param stream Stream to read from.
+   */
+  virtual void readNextBigEndian(std::istream& stream) override {
+    assert(false);
+  }
+
+  /**
+   * @brief (reading) Write a header entry for this property. Note that we already use "uchar" for the list count type.
+   *
+   * @param outStream Stream to write to.
+   */
+  virtual void writeHeader(std::ostream& outStream) const override {
+    // NOTE: We ALWAYS use uchar as the list count output type
+    outStream << "property list uchar " << typeName<typename CanonicalName<T>::type>() << " " << name << "\n";
+  }
+
+  /**
+   * @brief (ASCII writing) write this property for some element to a stream in plaintext
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) const override {
+    auto const& inner = data[iElement];
+    auto const dataCount = inner.size();
+
+    outStream << dataCount;
+    outStream.precision(std::numeric_limits<typename CanonicalName<T>::type>::max_digits10);
+    for (auto const& innerData : inner) {
+      outStream << " "
+                << static_cast<typename SerializeType<typename CanonicalName<T>::type>::type>(
+                       innerData); // cast is usually a no-op
+    }
+  }
+
+  /**
+   * @brief (binary writing) copy the bits of this property for some element to a stream
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) const override {
+    auto const& inner = data[iElement];
+    auto const dataCount = inner.size();
+
+    uint8_t count = static_cast<uint8_t>(dataCount);
+
+    outStream.write((char*)&count, sizeof(uint8_t));
+    if (sizeof(T) == sizeof(typename CanonicalName<T>::type))
+      outStream.write((char*)inner.data(), count * sizeof(typename CanonicalName<T>::type));
+    else {
+      // 2do: trade speed vs temp space; maybe convert the whole inner at once at least?
+      for (auto const& innerData : inner) {
+        typename CanonicalName<T>::type const tmp = innerData;
+        outStream.write((char*)&tmp, sizeof(typename CanonicalName<T>::type));
+      }
+    }
+  }
+
+  /**
+   * @brief (binary writing) copy the bits of this property for some element to a stream
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) const override {
+    auto const& inner = data[iElement];
+    auto const dataCount = inner.size();
+
+    uint8_t count = static_cast<uint8_t>(dataCount);
+
+    outStream.write((char*)&count, sizeof(uint8_t));
+    for (auto const& innerData : inner) {
+      auto value = swapEndian(static_cast<typename CanonicalName<T>::type>(innerData));
+      outStream.write((char*)&value, sizeof(CanonicalName<T>::type));
+    }
+  }
+
+  /**
+   * @brief Number of element entries for this property
+   *
+   * @return
+   */
+  virtual size_t size() const override {
+    return data.size();
+  }
+
+
+  /**
+   * @brief A string naming the type of the property
+   *
+   * @return
+   */
+  virtual std::string propertyTypeName() const override { return typeName<CanonicalName<T>::type>(); }
+
+
+  ///**
+  // * @brief A reference to the (unflattened) data for the property. Note that it doesn't have the canonical type
+  // * so that a conversion might be needed case wise.
+  // */
+  const std::vector<std::vector<T>>& data;
+};
+
+template <class T>
+class TypedListPropertyRw : public Property {
+
+public:
+  /**
+   * @brief Create a new Property with the given name.
+   *
+   * @param name_
+   */
+  TypedListPropertyRw(const std::string& name_, int listCountBytes_) : Property(name_), listCountBytes(listCountBytes_) {
     if (typeName<T>() == "unknown") {
       throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
     }
@@ -436,7 +740,7 @@ public:
    * @param name_
    * @param data_
    */
-  TypedListProperty(const std::string& name_, const std::vector<std::vector<T>>& data_) : Property(name_) {
+  TypedListPropertyRw(const std::string& name_, const std::vector<std::vector<T>>& data_) : Property(name_) {
     if (typeName<T>() == "unknown") {
       throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
     }
@@ -451,7 +755,7 @@ public:
     }
   };
 
-  virtual ~TypedListProperty() override{};
+  virtual ~TypedListPropertyRw() override{};
 
   /**
    * @brief Reserve memory.
@@ -694,27 +998,27 @@ inline std::unique_ptr<Property> createPropertyWithType(const std::string& name,
   // 8 bit unsigned
   if (typeStr == "uchar" || typeStr == "uint8") {
     if (isList) {
-      return std::unique_ptr<Property>(new TypedListProperty<uint8_t>(name, listCountBytes));
+      return std::unique_ptr<Property>(new TypedListPropertyRw<uint8_t>(name, listCountBytes));
     } else {
-      return std::unique_ptr<Property>(new TypedProperty<uint8_t>(name));
+      return std::unique_ptr<Property>(new TypedPropertyRw<uint8_t>(name));
     }
   }
 
   // 16 bit unsigned
   else if (typeStr == "ushort" || typeStr == "uint16") {
     if (isList) {
-      return std::unique_ptr<Property>(new TypedListProperty<uint16_t>(name, listCountBytes));
+      return std::unique_ptr<Property>(new TypedListPropertyRw<uint16_t>(name, listCountBytes));
     } else {
-      return std::unique_ptr<Property>(new TypedProperty<uint16_t>(name));
+      return std::unique_ptr<Property>(new TypedPropertyRw<uint16_t>(name));
     }
   }
 
   // 32 bit unsigned
   else if (typeStr == "uint" || typeStr == "uint32") {
     if (isList) {
-      return std::unique_ptr<Property>(new TypedListProperty<uint32_t>(name, listCountBytes));
+      return std::unique_ptr<Property>(new TypedListPropertyRw<uint32_t>(name, listCountBytes));
     } else {
-      return std::unique_ptr<Property>(new TypedProperty<uint32_t>(name));
+      return std::unique_ptr<Property>(new TypedPropertyRw<uint32_t>(name));
     }
   }
 
@@ -723,27 +1027,27 @@ inline std::unique_ptr<Property> createPropertyWithType(const std::string& name,
   // 8 bit signed
   if (typeStr == "char" || typeStr == "int8") {
     if (isList) {
-      return std::unique_ptr<Property>(new TypedListProperty<int8_t>(name, listCountBytes));
+      return std::unique_ptr<Property>(new TypedListPropertyRw<int8_t>(name, listCountBytes));
     } else {
-      return std::unique_ptr<Property>(new TypedProperty<int8_t>(name));
+      return std::unique_ptr<Property>(new TypedPropertyRw<int8_t>(name));
     }
   }
 
   // 16 bit signed
   else if (typeStr == "short" || typeStr == "int16") {
     if (isList) {
-      return std::unique_ptr<Property>(new TypedListProperty<int16_t>(name, listCountBytes));
+      return std::unique_ptr<Property>(new TypedListPropertyRw<int16_t>(name, listCountBytes));
     } else {
-      return std::unique_ptr<Property>(new TypedProperty<int16_t>(name));
+      return std::unique_ptr<Property>(new TypedPropertyRw<int16_t>(name));
     }
   }
 
   // 32 bit signed
   else if (typeStr == "int" || typeStr == "int32") {
     if (isList) {
-      return std::unique_ptr<Property>(new TypedListProperty<int32_t>(name, listCountBytes));
+      return std::unique_ptr<Property>(new TypedListPropertyRw<int32_t>(name, listCountBytes));
     } else {
-      return std::unique_ptr<Property>(new TypedProperty<int32_t>(name));
+      return std::unique_ptr<Property>(new TypedPropertyRw<int32_t>(name));
     }
   }
 
@@ -752,18 +1056,18 @@ inline std::unique_ptr<Property> createPropertyWithType(const std::string& name,
   // 32 bit float
   else if (typeStr == "float" || typeStr == "float32") {
     if (isList) {
-      return std::unique_ptr<Property>(new TypedListProperty<float>(name, listCountBytes));
+      return std::unique_ptr<Property>(new TypedListPropertyRw<float>(name, listCountBytes));
     } else {
-      return std::unique_ptr<Property>(new TypedProperty<float>(name));
+      return std::unique_ptr<Property>(new TypedPropertyRw<float>(name));
     }
   }
 
   // 64 bit float
   else if (typeStr == "double" || typeStr == "float64") {
     if (isList) {
-      return std::unique_ptr<Property>(new TypedListProperty<double>(name, listCountBytes));
+      return std::unique_ptr<Property>(new TypedListPropertyRw<double>(name, listCountBytes));
     } else {
-      return std::unique_ptr<Property>(new TypedProperty<double>(name));
+      return std::unique_ptr<Property>(new TypedPropertyRw<double>(name));
     }
   }
 
@@ -820,7 +1124,7 @@ public:
   bool hasPropertyType(const std::string& target) const {
     for (std::unique_ptr<Property> const& prop : properties) {
       if (prop->name == target) {
-        TypedProperty<T> const* castedProp = dynamic_cast<TypedProperty<T> const*>(prop.get());
+        TypedPropertyRw<T> const* castedProp = dynamic_cast<TypedPropertyRw<T> const*>(prop.get());
         if (castedProp) {
           return true;
         }
@@ -870,7 +1174,7 @@ public:
    * @param data The data for the property. Must have the same length as the number of elements.
    */
   template <class T>
-  void addProperty(const std::string& propertyName, const std::vector<T>& data) {
+  void addProperty(const std::string& propertyName, const std::vector<T>& data, bool rw = true) {
 
     if (data.size() != count) {
       throw std::runtime_error("PLY write: new property " + propertyName + " has size which does not match element");
@@ -884,11 +1188,15 @@ public:
       }
     }
 
-    // Copy to canonical type. Often a no-op, but takes care of standardizing widths across platforms.
-    std::vector<typename CanonicalName<T>::type> canonicalVec(data.begin(), data.end());
+    if (rw) {
+      // Copy to canonical type. Often a no-op, but takes care of standardizing widths across platforms.
+      std::vector<typename CanonicalName<T>::type> canonicalVec(data.begin(), data.end());
 
-    properties.push_back(
-        std::unique_ptr<Property>(new TypedProperty<typename CanonicalName<T>::type>(propertyName, canonicalVec)));
+      properties.push_back(
+          std::unique_ptr<Property>(new TypedPropertyRw<typename CanonicalName<T>::type>(propertyName, canonicalVec)));
+    } else {
+      properties.push_back(std::unique_ptr<Property>(new TypedProperty<T>(propertyName, data)));
+    }
   }
 
   /**
@@ -899,7 +1207,7 @@ public:
    * @param data The data for the property. Outer vector must have the same length as the number of elements.
    */
   template <class T>
-  void addListProperty(const std::string& propertyName, const std::vector<std::vector<T>>& data) {
+  void addListProperty(const std::string& propertyName, const std::vector<std::vector<T>>& data, bool rw = true) {
 
     if (data.size() != count) {
       throw std::runtime_error("PLY write: new property " + propertyName + " has size which does not match element");
@@ -913,14 +1221,18 @@ public:
       }
     }
 
-    // Copy to canonical type. Often a no-op, but takes care of standardizing widths across platforms.
-    std::vector<std::vector<typename CanonicalName<T>::type>> canonicalListVec;
-    for (const std::vector<T>& subList : data) {
-      canonicalListVec.emplace_back(subList.begin(), subList.end());
-    }
+    if (rw) {
+      // Copy to canonical type. Often a no-op, but takes care of standardizing widths across platforms.
+      std::vector<std::vector<typename CanonicalName<T>::type>> canonicalListVec;
+      for (const std::vector<T>& subList : data) {
+        canonicalListVec.emplace_back(subList.begin(), subList.end());
+      }
 
-    properties.push_back(std::unique_ptr<Property>(
-        new TypedListProperty<typename CanonicalName<T>::type>(propertyName, canonicalListVec)));
+      properties.push_back(std::unique_ptr<Property>(
+          new TypedListPropertyRw<typename CanonicalName<T>::type>(propertyName, canonicalListVec)));
+    } else {
+      properties.push_back(std::unique_ptr<Property>(new TypedListProperty<T>(propertyName, data)));
+    }
   }
 
   /**
@@ -956,11 +1268,11 @@ public:
 
     // Find the property
     std::unique_ptr<Property> const& prop = getPropertyPtr(propertyName);
-    TypedProperty<T> const* castedProp = dynamic_cast<TypedProperty<T> const*>(prop);
-    if (castedProp) {
+    if (TypedProperty<T> const* castedProp = dynamic_cast<TypedProperty<T> const*>(prop))
       return castedProp->data;
-    }
-
+    else if (TypedPropertyRw<T> const* castedProp = dynamic_cast<TypedPropertyRw<T> const*>(prop))
+      return castedProp->data;
+    else
     // No match, failure
     throw std::runtime_error("PLY parser: property " + prop->name + " is not of type type " + typeName<T>() +
                              ". Has type " + prop->propertyTypeName());
@@ -999,11 +1311,11 @@ public:
 
     // Find the property
     std::unique_ptr<Property> const& prop = getPropertyPtr(propertyName);
-    TypedListProperty<T> const* castedProp = dynamic_cast<TypedListProperty<T> const*>(prop);
-    if (castedProp) {
+    if (TypedListProperty<T> const* castedProp = dynamic_cast<TypedListProperty<T> const*>(prop))
+      return castedProp->data;
+    else if (TypedListPropertyRw<T> const* castedProp = dynamic_cast<TypedListPropertyRw<T> const*>(prop))
       return unflattenList(castedProp->flattenedData, castedProp->flattenedIndexStart);
-    }
-
+    else
     // No match, failure
     throw std::runtime_error("PLY parser: list property " + prop->name + " is not of type " + typeName<T>() +
                              ". Has type " + prop->propertyTypeName());
@@ -1162,7 +1474,7 @@ public:
     typedef typename CanonicalName<T>::type Tcan;
 
     { // Try to return data of type D from a property of type T
-      TypedProperty<Tcan> const* castedProp = dynamic_cast<TypedProperty<Tcan> const*>(prop);
+      TypedPropertyRw<Tcan> const* castedProp = dynamic_cast<TypedPropertyRw<Tcan> const*>(prop);
       if (castedProp) {
         // Succeeded, return a buffer of the data (copy while converting type)
         std::vector<D> castedVec;
@@ -1199,7 +1511,7 @@ public:
   std::vector<std::vector<D>> getDataFromListPropertyRecursive(Property const* prop) const {
     typedef typename CanonicalName<T>::type Tcan;
 
-    TypedListProperty<Tcan> const* castedProp = dynamic_cast<TypedListProperty<Tcan> const*>(prop);
+    TypedListPropertyRw<Tcan> const* castedProp = dynamic_cast<TypedListPropertyRw<Tcan> const*>(prop);
     if (castedProp) {
       // Succeeded, return a buffer of the data (copy while converting type)
 
