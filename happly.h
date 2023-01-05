@@ -560,14 +560,14 @@ public:
    *
    * @param name_
    */
-  TypedListProperty(const std::string& name_, int listCountBytes_) : Property(name_), listCountBytes(listCountBytes_) {
-    assert(false);
-    if (typeName<typename CanonicalName<T>::type>() == "unknown") {
-      throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
-    }
-
-    flattenedIndexStart.push_back(0);
-  };
+  //TypedListProperty(const std::string& name_, int listCountBytes_) : Property(name_), listCountBytes(listCountBytes_) {
+  //  assert(false);
+  //  if (typeName<typename CanonicalName<T>::type>() == "unknown") {
+  //    throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
+  //  }
+  //
+  //  flattenedIndexStart.push_back(0);
+  //};
 
   /**
    * @brief Create a new property and initialize with data
