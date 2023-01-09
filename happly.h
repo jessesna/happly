@@ -412,6 +412,142 @@ public:
   std::vector<T> const& data;
 };
 
+/**
+* @brief A property which takes a single value (not a list).
+*/
+template <class FgetData, class FgetSize, class T = decltype(std::declval<FgetData>()(0))>
+class TypedPropertyF : public Property {
+
+public:
+  /**
+   * @brief Create a new Property with the given name.
+   *
+   * @param name_
+   */
+  // TypedPropertyF(const std::string& name_) : Property(name_) {
+  //   assert(false);
+  //   if (typeName<typename CanonicalName<T>::type>() == "unknown") {
+  //     // TODO should really be a compile-time error
+  //     throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
+  //   }
+  // };
+
+  /**
+   * @brief Create a new property and initialize with data.
+   *
+   * @param name_
+   * @param data_
+   */
+  TypedPropertyF(const std::string& name_, FgetData getData_, FgetSize getSize_)
+      : Property(name_), getData(getData_), getSize(getSize_) {
+    if (typeName<typename CanonicalName<T>::type>() == "unknown") {
+      throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
+    }
+  };
+
+  virtual ~TypedPropertyF() override{};
+
+  /**
+   * @brief Reserve memory.
+   *
+   * @param capacity Expected number of elements.
+   */
+  virtual void reserve(size_t capacity) override { assert(false); }
+
+  /**
+   * @brief (ASCII reading) Parse out the next value of this property from a list of tokens.
+   *
+   * @param tokens The list of property tokens for the element.
+   * @param currEntry Index in to tokens, updated after this property is read.
+   */
+  virtual void parseNext(const std::vector<std::string>& tokens, size_t& currEntry) override { assert(false); };
+
+  /**
+   * @brief (binary reading) Copy the next value of this property from a stream of bits.
+   *
+   * @param stream Stream to read from.
+   */
+  virtual void readNext(std::istream& stream) override { assert(false); }
+
+  /**
+   * @brief (binary reading) Copy the next value of this property from a stream of bits.
+   *
+   * @param stream Stream to read from.
+   */
+  virtual void readNextBigEndian(std::istream& stream) override { assert(false); }
+
+  /**
+   * @brief (reading) Write a header entry for this property.
+   *
+   * @param outStream Stream to write to.
+   */
+  virtual void writeHeader(std::ostream& outStream) const override {
+    outStream << "property " << typeName<typename CanonicalName<T>::type>() << " " << name << "\n";
+  }
+
+  /**
+   * @brief (ASCII writing) write this property for some element to a stream in plaintext
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) const override {
+    outStream.precision(std::numeric_limits<typename CanonicalName<T>::type>::max_digits10);
+    outStream << static_cast<typename SerializeType<typename CanonicalName<T>::type>::type>(
+        getData(iElement)); // case is usually a no-op
+  }
+
+  /**
+   * @brief (binary writing) copy the bits of this property for some element to a stream
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) const override {
+    if (sizeof(T) == sizeof(typename CanonicalName<T>::type)) {
+      auto const& tmp = getData(iElement);
+      outStream.write((char const*)&tmp, sizeof(typename CanonicalName<T>::type));
+    } else {
+      typename CanonicalName<T>::type const tmp = getData(iElement);
+      outStream.write((char*)&tmp, sizeof(typename CanonicalName<T>::type));
+    }
+  }
+
+  /**
+   * @brief (binary writing) copy the bits of this property for some element to a stream
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) const override {
+    auto value = swapEndian(static_cast<typename CanonicalName<T>::type>(getData(iElement)));
+    outStream.write((char*)&value, sizeof(typename CanonicalName<T>::type));
+  }
+
+  /**
+   * @brief Number of element entries for this property
+   *
+   * @return
+   */
+  virtual size_t size() const override { return getSize(); }
+
+
+  /**
+   * @brief A string naming the type of the property
+   *
+   * @return
+   */
+  virtual std::string propertyTypeName() const override { return typeName<typename CanonicalName<T>::type>(); }
+
+  ///**
+  // * @brief A functor to get the data ad hoc. Note that it doesn't have the canonical type
+  // * so that a conversion might be needed case wise.
+  // */
+  FgetData getData;
+  FgetSize getSize;
+};
+
+
 template <class T>
 class TypedPropertyRw : public Property {
 
@@ -715,6 +851,168 @@ public:
   // * so that a conversion might be needed case wise.
   // */
   const std::vector<std::vector<T>>& data;
+};
+
+/**
+ * @brief A property which is a list of value (eg, 3 doubles). Note that lists are always variable length per-element.
+ */
+template <class FgetData, class FgetSize, class T = decltype(FgetData()(0))::value_type>
+class TypedListPropertyF : public Property {
+
+public:
+  /**
+   * @brief Create a new Property with the given name.
+   *
+   * @param name_
+   */
+  // TypedListPropertyF(const std::string& name_, int listCountBytes_) : Property(name_), listCountBytes(listCountBytes_)
+  // {
+  //   assert(false);
+  //   if (typeName<typename CanonicalName<T>::type>() == "unknown") {
+  //     throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
+  //   }
+  //
+  //   flattenedIndexStart.push_back(0);
+  // };
+
+  /**
+   * @brief Create a new property and initialize with data
+   *
+   * @param name_
+   * @param data_
+   */
+  TypedListPropertyF(const std::string& name_, FgetData getData_, FgetSize getSize_)
+      : Property(name_), getData(getData_), getSize(getSize_) {
+    if (typeName<typename CanonicalName<T>::type>() == "unknown") {
+      throw std::runtime_error("Attempted property type does not match any type defined by the .ply format.");
+    }
+  };
+
+  virtual ~TypedListPropertyF() override{};
+
+  /**
+   * @brief Reserve memory.
+   *
+   * @param capacity Expected number of elements.
+   */
+  virtual void reserve(size_t capacity) override { assert(false); }
+
+  /**
+   * @brief (ASCII reading) Parse out the next value of this property from a list of tokens.
+   *
+   * @param tokens The list of property tokens for the element.
+   * @param currEntry Index in to tokens, updated after this property is read.
+   */
+  virtual void parseNext(const std::vector<std::string>& tokens, size_t& currEntry) override { assert(false); }
+
+  /**
+   * @brief (binary reading) Copy the next value of this property from a stream of bits.
+   *
+   * @param stream Stream to read from.
+   */
+  virtual void readNext(std::istream& stream) override { assert(false); }
+
+  /**
+   * @brief (binary reading) Copy the next value of this property from a stream of bits.
+   *
+   * @param stream Stream to read from.
+   */
+  virtual void readNextBigEndian(std::istream& stream) override { assert(false); }
+
+  /**
+   * @brief (reading) Write a header entry for this property. Note that we already use "uchar" for the list count type.
+   *
+   * @param outStream Stream to write to.
+   */
+  virtual void writeHeader(std::ostream& outStream) const override {
+    // NOTE: We ALWAYS use uchar as the list count output type
+    outStream << "property list uchar " << typeName<typename CanonicalName<T>::type>() << " " << name << "\n";
+  }
+
+  /**
+   * @brief (ASCII writing) write this property for some element to a stream in plaintext
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataASCII(std::ostream& outStream, size_t iElement) const override {
+    auto const& inner = getData(iElement);
+    auto const dataCount = inner.size();
+
+    outStream << dataCount;
+    outStream.precision(std::numeric_limits<typename CanonicalName<T>::type>::max_digits10);
+    for (auto const& innerData : inner) {
+      outStream << " "
+                << static_cast<typename SerializeType<typename CanonicalName<T>::type>::type>(
+                       innerData); // cast is usually a no-op
+    }
+  }
+
+  /**
+   * @brief (binary writing) copy the bits of this property for some element to a stream
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataBinary(std::ostream& outStream, size_t iElement) const override {
+    auto const& inner = getData(iElement);
+    auto const dataCount = inner.size();
+
+    uint8_t count = static_cast<uint8_t>(dataCount);
+
+    outStream.write((char*)&count, sizeof(uint8_t));
+    if (sizeof(T) == sizeof(typename CanonicalName<T>::type))
+      outStream.write((char*)inner.data(), count * sizeof(typename CanonicalName<T>::type));
+    else {
+      // 2do: trade speed vs temp space; maybe convert the whole inner at once at least?
+      for (auto const& innerData : inner) {
+        typename CanonicalName<T>::type const tmp = innerData;
+        outStream.write((char*)&tmp, sizeof(typename CanonicalName<T>::type));
+      }
+    }
+  }
+
+  /**
+   * @brief (binary writing) copy the bits of this property for some element to a stream
+   *
+   * @param outStream Stream to write to.
+   * @param iElement index of the element to write.
+   */
+  virtual void writeDataBinaryBigEndian(std::ostream& outStream, size_t iElement) const override {
+    auto const& inner = getData(iElement);
+    auto const dataCount = inner.size();
+
+    uint8_t count = static_cast<uint8_t>(dataCount);
+
+    outStream.write((char*)&count, sizeof(uint8_t));
+    for (auto const& innerData : inner) {
+      auto value = swapEndian(static_cast<typename CanonicalName<T>::type>(innerData));
+      outStream.write((char*)&value, sizeof(CanonicalName<T>::type));
+    }
+  }
+
+  /**
+   * @brief Number of element entries for this property
+   *
+   * @return
+   */
+  virtual size_t size() const override { return getSize(); }
+
+
+  /**
+   * @brief A string naming the type of the property
+   *
+   * @return
+   */
+  virtual std::string propertyTypeName() const override { return typeName<CanonicalName<T>::type>(); }
+
+
+  ///**
+  // * @brief A functor to get the data ad hoc. Note that it doesn't have the canonical type
+  // * so that a conversion might be needed case wise.
+  // */
+  FgetData getData;
+  FgetSize getSize;
 };
 
 template <class T>
@@ -1199,6 +1497,25 @@ public:
     }
   }
 
+  template <class FgetData, class FgetSize>
+  void addProperty(const std::string& propertyName, FgetData getData, FgetSize getSize) {
+
+    if (getSize() != count) {
+      throw std::runtime_error("PLY write: new property " + propertyName + " has size which does not match element");
+    }
+
+    // If there is already some property with this name, remove it
+    for (size_t i = 0; i < properties.size(); i++) {
+      if (properties[i]->name == propertyName) {
+        properties.erase(properties.begin() + i);
+        i--;
+      }
+    }
+
+    properties.push_back(
+        std::unique_ptr<Property>(new TypedPropertyF<FgetData, FgetSize>(propertyName, getData, getSize)));
+  }
+
   /**
    * @brief Add a new list property for this element type.
    *
@@ -1233,6 +1550,24 @@ public:
     } else {
       properties.push_back(std::unique_ptr<Property>(new TypedListProperty<T>(propertyName, data)));
     }
+  }
+  template <class FgetData, class FgetSize>
+  void addListProperty(const std::string& propertyName, FgetData getData, FgetSize getSize) {
+
+    if (getSize() != count) {
+      throw std::runtime_error("PLY write: new property " + propertyName + " has size which does not match element");
+    }
+
+    // If there is already some property with this name, remove it
+    for (size_t i = 0; i < properties.size(); i++) {
+      if (properties[i]->name == propertyName) {
+        properties.erase(properties.begin() + i);
+        i--;
+      }
+    }
+
+    properties.push_back(
+        std::unique_ptr<Property>(new TypedPropertyF<FgetData, FgetSize>(propertyName, getData, getSize)));
   }
 
   /**

@@ -30,14 +30,69 @@ void DoubleArrayVecEq(std::vector<std::array<double, 3>>& arr1, std::vector<std:
 
 // == Test typed reading/writing
 
+// = functors
+
+TEST(TypedReadWriteTest, ReadWriteIntBinaryF) {
+
+  // Create a simple file
+  happly::PLYData plyOut;
+  plyOut.addElement("test_elem", 5);
+  std::vector<int> const testData_int{-3, 0, 2147483647, -2147483647 - 1, 122};
+  auto const& testData = testData_int;
+  plyOut.getElement("test_elem")
+      .addProperty(
+          "test_data", [&testData](size_t index) { return testData[index]; },
+          [&testData]() { return testData.size(); });
+  
+  // Binary read/write
+  plyOut.write("temp.ply", happly::DataFormat::Binary);
+  happly::PLYData plyInB("temp.ply");
+  std::vector<int> testDataBinary = plyInB.getElement("test_elem").getProperty<int>("test_data");
+  EXPECT_EQ(testData, testDataBinary);
+}
+
+TEST(TypedReadWriteTest, ReadWriteFloatBinaryF) {
+
+  // Create a simple file
+  happly::PLYData plyOut;
+  std::vector<float> const testData_floatBinary{
+      3.141592653589793238f,
+      -3.141592653589793238f,
+      std::numeric_limits<float>::min(),
+      std::numeric_limits<float>::max(),
+      std::numeric_limits<float>::lowest(),
+      std::numeric_limits<float>::epsilon(),
+      std::numeric_limits<float>::infinity(),
+      -std::numeric_limits<float>::infinity(),
+      0.0f,
+      -0.0f,
+      1e24f,
+  };
+  auto const& testData = testData_floatBinary;
+  plyOut.addElement("test_elem", testData.size());
+  plyOut.getElement("test_elem")
+      .addProperty(
+          "test_data", [&testData](size_t index) { return testData[index]; },
+          [&testData]() { return testData.size(); });
+  
+  // ASCII read/write
+  plyOut.write("temp.ply", happly::DataFormat::Binary);
+  happly::PLYData plyIn("temp.ply");
+  std::vector<float> testDataBinary = plyIn.getElement("test_elem").getProperty<float>("test_data");
+  EXPECT_EQ(testData, testDataBinary);
+}
+
+
 // = char
+std::vector<char> const testData_char{-3, 4, 11, -12, 122};
+
 TEST(TypedReadWriteTest, ReadWriteCharASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<char> testData{-3, 4, 11, -12, 122};
+    auto const& testData = testData_char;
     plyOut.getElement("test_elem").addProperty<char>("test_data", testData, rw);
 
     // ASCII read/write
@@ -53,7 +108,7 @@ TEST(TypedReadWriteTest, ReadWriteCharBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<char> testData{-3, 4, 11, -12, 122};
+    auto const& testData = testData_char;
     plyOut.getElement("test_elem").addProperty<char>("test_data", testData, rw);
 
     // Binary read/write
@@ -69,7 +124,7 @@ TEST(TypedReadWriteTest, ReadWriteCharBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<char> testData{-3, 4, 11, -12, 122};
+    auto const& testData = testData_char;
     plyOut.getElement("test_elem").addProperty<char>("test_data", testData, rw);
 
     // Binary read/write
@@ -81,13 +136,15 @@ TEST(TypedReadWriteTest, ReadWriteCharBinarySwap) {
 }
 
 // = unsigned char
+std::vector<unsigned char> const testData_unsigned_char{3, 0, 11, 255, 122};
+
 TEST(TypedReadWriteTest, ReadWriteUCharASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<unsigned char> testData{3, 0, 11, 255, 122};
+    auto const& testData = testData_unsigned_char;
     plyOut.getElement("test_elem").addProperty<unsigned char>("test_data", testData, rw);
 
     // ASCII read/write
@@ -103,7 +160,7 @@ TEST(TypedReadWriteTest, ReadWriteUCharBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<unsigned char> testData{3, 0, 11, 255, 122};
+    auto const& testData = testData_unsigned_char;
     plyOut.getElement("test_elem").addProperty<unsigned char>("test_data", testData, rw);
 
     // Binary read/write
@@ -119,7 +176,7 @@ TEST(TypedReadWriteTest, ReadWriteUCharBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<unsigned char> testData{3, 0, 11, 255, 122};
+    auto const& testData = testData_unsigned_char;
     plyOut.getElement("test_elem").addProperty<unsigned char>("test_data", testData, rw);
 
     // Binary read/write
@@ -132,13 +189,15 @@ TEST(TypedReadWriteTest, ReadWriteUCharBinarySwap) {
 
 
 // = short
+std::vector<short> const testData_short{-3, 4, 32767, -32768, 122};
+
 TEST(TypedReadWriteTest, ReadWriteShortASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<short> testData{-3, 4, 32767, -32768, 122};
+    auto const& testData = testData_short;
     plyOut.getElement("test_elem").addProperty<short>("test_data", testData, rw);
 
     // ASCII read/write
@@ -154,7 +213,7 @@ TEST(TypedReadWriteTest, ReadWriteShortBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<short> testData{-3, 4, 32767, -32768, 122};
+    auto const& testData = testData_short;
     plyOut.getElement("test_elem").addProperty<short>("test_data", testData, rw);
 
     // Binary read/write
@@ -170,7 +229,7 @@ TEST(TypedReadWriteTest, ReadWriteShortBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<short> testData{-3, 4, 32767, -32768, 122};
+    auto const& testData = testData_short;
     plyOut.getElement("test_elem").addProperty<short>("test_data", testData, rw);
 
     // Binary read/write
@@ -182,13 +241,15 @@ TEST(TypedReadWriteTest, ReadWriteShortBinarySwap) {
 }
 
 // = unsigned short
+std::vector<unsigned short> const testData_unsigned_short{3, 0, 11, 65535, 122};
+
 TEST(TypedReadWriteTest, ReadWriteUShortASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<unsigned short> testData{3, 0, 11, 65535, 122};
+    auto const& testData = testData_unsigned_short;
     plyOut.getElement("test_elem").addProperty<unsigned short>("test_data", testData, rw);
 
     // ASCII read/write
@@ -204,7 +265,7 @@ TEST(TypedReadWriteTest, ReadWriteUShortBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<unsigned short> testData{3, 0, 11, 65535, 122};
+    auto const& testData = testData_unsigned_short;
     plyOut.getElement("test_elem").addProperty<unsigned short>("test_data", testData, rw);
 
     // Binary read/write
@@ -221,7 +282,7 @@ TEST(TypedReadWriteTest, ReadWriteUShortBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<unsigned short> testData{3, 0, 11, 65535, 122};
+    auto const& testData = testData_unsigned_short;
     plyOut.getElement("test_elem").addProperty<unsigned short>("test_data", testData, rw);
 
     // Binary read/write
@@ -234,13 +295,15 @@ TEST(TypedReadWriteTest, ReadWriteUShortBinarySwap) {
 }
 
 // = int
+std::vector<int> const testData_int{-3, 0, 2147483647, -2147483647 - 1, 122};
+
 TEST(TypedReadWriteTest, ReadWriteIntASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<int> testData{-3, 0, 2147483647, -2147483647 - 1, 122};
+    auto const& testData = testData_int;
     plyOut.getElement("test_elem").addProperty<int>("test_data", testData, rw);
 
     // ASCII read/write
@@ -256,7 +319,7 @@ TEST(TypedReadWriteTest, ReadWriteIntBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<int> testData{-3, 0, 2147483647, -2147483647 - 1, 122};
+    auto const& testData = testData_int;
     plyOut.getElement("test_elem").addProperty<int>("test_data", testData, rw);
 
     // Binary read/write
@@ -272,7 +335,7 @@ TEST(TypedReadWriteTest, ReadWriteIntBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<int> testData{-3, 0, 2147483647, -2147483647 - 1, 122};
+    auto const& testData = testData_int;
     plyOut.getElement("test_elem").addProperty<int>("test_data", testData, rw);
 
     // Binary read/write
@@ -284,13 +347,15 @@ TEST(TypedReadWriteTest, ReadWriteIntBinarySwap) {
 }
 
 // = unsigned int
+std::vector<unsigned int> const testData_unsigned_int{3, 0, 4294967295, 15, 122};
+
 TEST(TypedReadWriteTest, ReadWriteUIntASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<unsigned int> testData{3, 0, 4294967295, 15, 122};
+    auto const& testData = testData_unsigned_int;
     plyOut.getElement("test_elem").addProperty<unsigned int>("test_data", testData, rw);
 
     // ASCII read/write
@@ -306,7 +371,7 @@ TEST(TypedReadWriteTest, ReadWriteUIntBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<unsigned int> testData{3, 0, 4294967295, 15, 122};
+    auto const& testData = testData_unsigned_int;
     plyOut.getElement("test_elem").addProperty<unsigned int>("test_data", testData, rw);
 
     // Binary read/write
@@ -322,7 +387,7 @@ TEST(TypedReadWriteTest, ReadWriteUIntBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<unsigned int> testData{3, 0, 4294967295, 15, 122};
+    auto const& testData = testData_unsigned_int;
     plyOut.getElement("test_elem").addProperty<unsigned int>("test_data", testData, rw);
 
     // Binary read/write
@@ -334,6 +399,20 @@ TEST(TypedReadWriteTest, ReadWriteUIntBinarySwap) {
 }
 
 // = float
+std::vector<float> const testData_floatBinary{
+    3.141592653589793238f,
+    -3.141592653589793238f,
+    std::numeric_limits<float>::min(),
+    std::numeric_limits<float>::max(),
+    std::numeric_limits<float>::lowest(),
+    std::numeric_limits<float>::epsilon(),
+    std::numeric_limits<float>::infinity(),
+    -std::numeric_limits<float>::infinity(),
+    0.0f,
+    -0.0f,
+    1e24f,
+};
+
 TEST(TypedReadWriteTest, ReadWriteFloatASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
@@ -367,19 +446,7 @@ TEST(TypedReadWriteTest, ReadWriteFloatBinary) {
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
-    std::vector<float> testData{
-        3.141592653589793238f,
-        -3.141592653589793238f,
-        std::numeric_limits<float>::min(),
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::lowest(),
-        std::numeric_limits<float>::epsilon(),
-        std::numeric_limits<float>::infinity(),
-        -std::numeric_limits<float>::infinity(),
-        0.0f,
-        -0.0f,
-        1e24f,
-    };
+    auto const& testData = testData_floatBinary;
     plyOut.addElement("test_elem", testData.size());
     plyOut.getElement("test_elem").addProperty<float>("test_data", testData, rw);
 
@@ -395,19 +462,7 @@ TEST(TypedReadWriteTest, ReadWriteFloatBinarySwap) {
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
-    std::vector<float> testData{
-        3.141592653589793238f,
-        -3.141592653589793238f,
-        std::numeric_limits<float>::min(),
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::lowest(),
-        std::numeric_limits<float>::epsilon(),
-        std::numeric_limits<float>::infinity(),
-        -std::numeric_limits<float>::infinity(),
-        0.0f,
-        -0.0f,
-        1e24f,
-    };
+    auto const& testData = testData_floatBinary;
     plyOut.addElement("test_elem", testData.size());
     plyOut.getElement("test_elem").addProperty<float>("test_data", testData, rw);
 
@@ -421,6 +476,20 @@ TEST(TypedReadWriteTest, ReadWriteFloatBinarySwap) {
 
 
 // = double
+std::vector<double> const testData_doubleBinary{
+    3.141592653589793238,
+    -3.141592653589793238,
+    std::numeric_limits<double>::min(),
+    std::numeric_limits<double>::max(),
+    std::numeric_limits<double>::lowest(),
+    std::numeric_limits<double>::epsilon(),
+    std::numeric_limits<double>::infinity(),
+    -std::numeric_limits<double>::infinity(),
+    0.0,
+    -0.0,
+    1e24,
+};
+
 TEST(TypedReadWriteTest, ReadWriteDoubleASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
@@ -454,19 +523,7 @@ TEST(TypedReadWriteTest, ReadWriteDoubleBinary) {
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
-    std::vector<double> testData{
-        3.141592653589793238,
-        -3.141592653589793238,
-        std::numeric_limits<double>::min(),
-        std::numeric_limits<double>::max(),
-        std::numeric_limits<double>::lowest(),
-        std::numeric_limits<double>::epsilon(),
-        std::numeric_limits<double>::infinity(),
-        -std::numeric_limits<double>::infinity(),
-        0.0,
-        -0.0,
-        1e24,
-    };
+    auto const& testData = testData_doubleBinary;
     plyOut.addElement("test_elem", testData.size());
     plyOut.getElement("test_elem").addProperty<double>("test_data", testData, rw);
 
@@ -482,19 +539,7 @@ TEST(TypedReadWriteTest, ReadWriteDoubleBinarySwap) {
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
-    std::vector<double> testData{
-        3.141592653589793238,
-        -3.141592653589793238,
-        std::numeric_limits<double>::min(),
-        std::numeric_limits<double>::max(),
-        std::numeric_limits<double>::lowest(),
-        std::numeric_limits<double>::epsilon(),
-        std::numeric_limits<double>::infinity(),
-        -std::numeric_limits<double>::infinity(),
-        0.0,
-        -0.0,
-        1e24,
-    };
+    auto const& testData = testData_doubleBinary;
     plyOut.addElement("test_elem", testData.size());
     plyOut.getElement("test_elem").addProperty<double>("test_data", testData, rw);
 
@@ -508,15 +553,17 @@ TEST(TypedReadWriteTest, ReadWriteDoubleBinarySwap) {
 
 
 // = signed char list
+std::vector<std::vector<char>> const testData_char_list{
+    {3}, {3, 0, 11, -128, 127}, {}, {}, {3, 11},
+};
+
 TEST(TypedListReadWriteTest, ReadWriteCharASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<char>> testData{
-        {3}, {3, 0, 11, -128, 127}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_char_list;
     plyOut.getElement("test_elem").addListProperty<char>("test_data", testData, rw);
 
     // ASCII read/write
@@ -532,9 +579,7 @@ TEST(TypedListReadWriteTest, ReadWriteCharBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<char>> testData{
-        {3}, {3, 0, 11, -128, 127}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_char_list;
     std::cout << "size: " << testData.size() << std::endl;
     for (auto& v : testData) {
       std::cout << "sub size: " << v.size() << std::endl;
@@ -558,9 +603,7 @@ TEST(TypedListReadWriteTest, ReadWriteCharBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<char>> testData{
-        {3}, {3, 0, 11, -128, 127}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_char_list;
     plyOut.getElement("test_elem").addListProperty<char>("test_data", testData, rw);
 
     // ASCII read/write
@@ -572,15 +615,17 @@ TEST(TypedListReadWriteTest, ReadWriteCharBinarySwap) {
 }
 
 // = unsigned char list
+std::vector<std::vector<unsigned char>> const testData_unsigned_char_list{
+    {3}, {3, 0, 11, 255, 122}, {}, {}, {3, 11},
+};
+
 TEST(TypedListReadWriteTest, ReadWriteUCharASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<unsigned char>> testData{
-        {3}, {3, 0, 11, 255, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_unsigned_char_list;
     plyOut.getElement("test_elem").addListProperty<unsigned char>("test_data", testData, rw);
 
     // ASCII read/write
@@ -597,9 +642,7 @@ TEST(TypedListReadWriteTest, ReadWriteUCharBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<unsigned char>> testData{
-        {3}, {3, 0, 11, 255, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_unsigned_char_list;
     plyOut.getElement("test_elem").addListProperty<unsigned char>("test_data", testData, rw);
 
     // ASCII read/write
@@ -616,9 +659,7 @@ TEST(TypedListReadWriteTest, ReadWriteUCharBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<unsigned char>> testData{
-        {3}, {3, 0, 11, 255, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_unsigned_char_list;
     plyOut.getElement("test_elem").addListProperty<unsigned char>("test_data", testData, rw);
 
     // ASCII read/write
@@ -632,15 +673,17 @@ TEST(TypedListReadWriteTest, ReadWriteUCharBinarySwap) {
 
 
 // = signed short list
+std::vector<std::vector<short>> const testData_short_list{
+    {3}, {-3, 4, 32767, -32768, 122}, {}, {}, {3, 11},
+};
+
 TEST(TypedListReadWriteTest, ReadWriteShortASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<short>> testData{
-        {3}, {-3, 4, 32767, -32768, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_short_list;
     plyOut.getElement("test_elem").addListProperty<short>("test_data", testData, rw);
 
     // ASCII read/write
@@ -656,9 +699,7 @@ TEST(TypedListReadWriteTest, ReadWriteShortBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<short>> testData{
-        {3}, {-3, 4, 32767, -32768, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_short_list;
     plyOut.getElement("test_elem").addListProperty<short>("test_data", testData, rw);
 
     // ASCII read/write
@@ -674,9 +715,7 @@ TEST(TypedListReadWriteTest, ReadWriteShortBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<short>> testData{
-        {3}, {-3, 4, 32767, -32768, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_short_list;
     plyOut.getElement("test_elem").addListProperty<short>("test_data", testData, rw);
 
     // ASCII read/write
@@ -688,15 +727,17 @@ TEST(TypedListReadWriteTest, ReadWriteShortBinarySwap) {
 }
 
 // = unsigned short list
+std::vector<std::vector<unsigned short>> const testData_unsigned_short_list{
+    {3}, {3, 0, 11, 65535, 122}, {}, {}, {3, 11},
+};
+
 TEST(TypedListReadWriteTest, ReadWriteUShortASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<unsigned short>> testData{
-        {3}, {3, 0, 11, 65535, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_unsigned_short_list;
     plyOut.getElement("test_elem").addListProperty<unsigned short>("test_data", testData, rw);
 
     // ASCII read/write
@@ -713,9 +754,7 @@ TEST(TypedListReadWriteTest, ReadWriteUShortBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<unsigned short>> testData{
-        {3}, {3, 0, 11, 65535, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_unsigned_short_list;
     plyOut.getElement("test_elem").addListProperty<unsigned short>("test_data", testData, rw);
 
     // ASCII read/write
@@ -732,9 +771,7 @@ TEST(TypedListReadWriteTest, ReadWriteUShortBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<unsigned short>> testData{
-        {3}, {3, 0, 11, 65535, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_unsigned_short_list;
     plyOut.getElement("test_elem").addListProperty<unsigned short>("test_data", testData, rw);
 
     // ASCII read/write
@@ -748,15 +785,17 @@ TEST(TypedListReadWriteTest, ReadWriteUShortBinarySwap) {
 
 
 // = signed int list
+std::vector<std::vector<int>> const testData_int_list{
+    {3}, {-3, 0, 2147483647, -2147483647 - 1, 122}, {}, {}, {3, 11},
+};
+
 TEST(TypedListReadWriteTest, ReadWriteIntASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<int>> testData{
-        {3}, {-3, 0, 2147483647, -2147483647 - 1, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_int_list;
     plyOut.getElement("test_elem").addListProperty<int>("test_data", testData, rw);
 
     // ASCII read/write
@@ -772,9 +811,7 @@ TEST(TypedListReadWriteTest, ReadWriteIntBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<int>> testData{
-        {3}, {-3, 0, 2147483647, -2147483647 - 1, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_int_list;
     plyOut.getElement("test_elem").addListProperty<int>("test_data", testData, rw);
 
     // ASCII read/write
@@ -790,9 +827,7 @@ TEST(TypedListReadWriteTest, ReadWriteIntBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<int>> testData{
-        {3}, {-3, 0, 2147483647, -2147483647 - 1, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_int_list;
     plyOut.getElement("test_elem").addListProperty<int>("test_data", testData, rw);
 
     // ASCII read/write
@@ -804,15 +839,17 @@ TEST(TypedListReadWriteTest, ReadWriteIntBinarySwap) {
 }
 
 // = unsigned int list
+std::vector<std::vector<unsigned int>> const testData_unsigned_int_list{
+    {3}, {3, 0, 4294967295, 15, 122}, {}, {}, {3, 11},
+};
+
 TEST(TypedListReadWriteTest, ReadWriteUIntASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<unsigned int>> testData{
-        {3}, {3, 0, 4294967295, 15, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_unsigned_int_list;
     plyOut.getElement("test_elem").addListProperty<unsigned int>("test_data", testData, rw);
 
     // ASCII read/write
@@ -829,9 +866,7 @@ TEST(TypedListReadWriteTest, ReadWriteUIntBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<unsigned int>> testData{
-        {3}, {3, 0, 4294967295, 15, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_unsigned_int_list;
     plyOut.getElement("test_elem").addListProperty<unsigned int>("test_data", testData, rw);
 
     // ASCII read/write
@@ -848,9 +883,7 @@ TEST(TypedListReadWriteTest, ReadWriteUIntBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<unsigned int>> testData{
-        {3}, {3, 0, 4294967295, 15, 122}, {}, {}, {3, 11},
-    };
+    auto const& testData = testData_unsigned_int_list;
     plyOut.getElement("test_elem").addListProperty<unsigned int>("test_data", testData, rw);
 
     // ASCII read/write
@@ -864,29 +897,31 @@ TEST(TypedListReadWriteTest, ReadWriteUIntBinarySwap) {
 
 
 // = float list
+std::vector<std::vector<float>> const testData_float_list{
+    {3.f, 14.44f, 42.4242f},
+    {
+        3.141592653589793238f,
+        -3.141592653589793238f,
+        std::numeric_limits<float>::min(),
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::epsilon(),
+        0.0f,
+        -0.0f,
+        1e24f,
+    },
+    {},
+    {1.1f},
+    {-121.5f, 1.111f},
+};
+
 TEST(TypedListReadWriteTest, ReadWriteFloatASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<float>> testData{
-        {3.f, 14.44f, 42.4242f},
-        {
-            3.141592653589793238f,
-            -3.141592653589793238f,
-            std::numeric_limits<float>::min(),
-            std::numeric_limits<float>::max(),
-            std::numeric_limits<float>::lowest(),
-            std::numeric_limits<float>::epsilon(),
-            0.0f,
-            -0.0f,
-            1e24f,
-        },
-        {},
-        {1.1f},
-        {-121.5f, 1.111f},
-    };
+    auto const& testData = testData_float_list;
     plyOut.getElement("test_elem").addListProperty<float>("test_data", testData, rw);
 
     // ASCII read/write
@@ -902,23 +937,7 @@ TEST(TypedListReadWriteTest, ReadWriteFloatBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<float>> testData{
-        {3.f, 14.44f, 42.4242f},
-        {
-            3.141592653589793238f,
-            -3.141592653589793238f,
-            std::numeric_limits<float>::min(),
-            std::numeric_limits<float>::max(),
-            std::numeric_limits<float>::lowest(),
-            std::numeric_limits<float>::epsilon(),
-            0.0f,
-            -0.0f,
-            1e24f,
-        },
-        {},
-        {1.1f},
-        {-121.5f, 1.111f},
-    };
+    auto const& testData = testData_float_list;
     plyOut.getElement("test_elem").addListProperty<float>("test_data", testData, rw);
 
     // ASCII read/write
@@ -934,23 +953,7 @@ TEST(TypedListReadWriteTest, ReadWriteFloatBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<float>> testData{
-        {3.f, 14.44f, 42.4242f},
-        {
-            3.141592653589793238f,
-            -3.141592653589793238f,
-            std::numeric_limits<float>::min(),
-            std::numeric_limits<float>::max(),
-            std::numeric_limits<float>::lowest(),
-            std::numeric_limits<float>::epsilon(),
-            0.0f,
-            -0.0f,
-            1e24f,
-        },
-        {},
-        {1.1f},
-        {-121.5f, 1.111f},
-    };
+    auto const& testData = testData_float_list;
     plyOut.getElement("test_elem").addListProperty<float>("test_data", testData, rw);
 
     // ASCII read/write
@@ -962,29 +965,31 @@ TEST(TypedListReadWriteTest, ReadWriteFloatBinarySwap) {
 }
 
 // = double list
+std::vector<std::vector<double>> const testData_double_list{
+    {3., 14.44, 42.4242},
+    {
+        3.141592653589793238,
+        -3.141592653589793238,
+        std::numeric_limits<double>::min(),
+        std::numeric_limits<double>::max(),
+        std::numeric_limits<double>::lowest(),
+        std::numeric_limits<double>::epsilon(),
+        0.0,
+        -0.0,
+        1e24,
+    },
+    {},
+    {1.1},
+    {-121.5, 1.111},
+};
+
 TEST(TypedListReadWriteTest, ReadWriteDoubleASCII) {
 
   for (int rw = 0; rw < 2; ++rw) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<double>> testData{
-        {3., 14.44, 42.4242},
-        {
-            3.141592653589793238,
-            -3.141592653589793238,
-            std::numeric_limits<double>::min(),
-            std::numeric_limits<double>::max(),
-            std::numeric_limits<double>::lowest(),
-            std::numeric_limits<double>::epsilon(),
-            0.0,
-            -0.0,
-            1e24,
-        },
-        {},
-        {1.1},
-        {-121.5, 1.111},
-    };
+    auto const& testData = testData_double_list;
     plyOut.getElement("test_elem").addListProperty<double>("test_data", testData, rw);
 
     // ASCII read/write
@@ -1000,23 +1005,7 @@ TEST(TypedListReadWriteTest, ReadWriteDoubleBinary) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<double>> testData{
-        {3., 14.44, 42.4242},
-        {
-            3.141592653589793238,
-            -3.141592653589793238,
-            std::numeric_limits<double>::min(),
-            std::numeric_limits<double>::max(),
-            std::numeric_limits<double>::lowest(),
-            std::numeric_limits<double>::epsilon(),
-            0.0,
-            -0.0,
-            1e24,
-        },
-        {},
-        {1.1},
-        {-121.5, 1.111},
-    };
+    auto const& testData = testData_double_list;
     plyOut.getElement("test_elem").addListProperty<double>("test_data", testData, rw);
 
     // ASCII read/write
@@ -1033,23 +1022,7 @@ TEST(TypedListReadWriteTest, ReadWriteDoubleBinarySwap) {
     // Create a simple file
     happly::PLYData plyOut;
     plyOut.addElement("test_elem", 5);
-    std::vector<std::vector<double>> testData{
-        {3., 14.44, 42.4242},
-        {
-            3.141592653589793238,
-            -3.141592653589793238,
-            std::numeric_limits<double>::min(),
-            std::numeric_limits<double>::max(),
-            std::numeric_limits<double>::lowest(),
-            std::numeric_limits<double>::epsilon(),
-            0.0,
-            -0.0,
-            1e24,
-        },
-        {},
-        {1.1},
-        {-121.5, 1.111},
-    };
+    auto const& testData = testData_double_list;
     plyOut.getElement("test_elem").addListProperty<double>("test_data", testData, rw);
 
     // ASCII read/write
