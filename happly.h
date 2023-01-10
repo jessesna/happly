@@ -856,7 +856,7 @@ public:
 /**
  * @brief A property which is a list of value (eg, 3 doubles). Note that lists are always variable length per-element.
  */
-template <class FgetData, class FgetSize, class T = decltype(FgetData()(0))::value_type>
+template <class FgetData, class FgetSize, class T = decltype(std::declval<FgetData>()(0))::value_type>
 class TypedListPropertyF : public Property {
 
 public:
@@ -1567,7 +1567,7 @@ public:
     }
 
     properties.push_back(
-        std::unique_ptr<Property>(new TypedPropertyF<FgetData, FgetSize>(propertyName, getData, getSize)));
+        std::unique_ptr<Property>(new TypedListPropertyF<FgetData, FgetSize>(propertyName, getData, getSize)));
   }
 
   /**
